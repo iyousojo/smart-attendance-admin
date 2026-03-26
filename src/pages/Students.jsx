@@ -1,52 +1,54 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios'; // Assuming you're using axios
+import React, { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 import { 
   Search, FileDown, MapPin, Clock, UserCheck, 
-  Fingerprint, ChevronDown, ShieldCheck, Menu, Loader2 
+  Fingerprint, ChevronDown, ShieldCheck, Menu, Loader2, RefreshCcw 
 } from 'lucide-react';
 
 const Students = ({ onViewLocation, setIsSidebarOpen }) => {
   const [attendanceLogs, setAttendanceLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
 
-  useEffect(() => {
-    fetchAttendance();
-  }, []);
-
-  const fetchAttendance = async () => {
+  const fetchAttendance = useCallback(async (isRefresh = false) => {
     try {
-      setLoading(true);
-      // Replace with your actual API base URL
+      isRefresh ? setRefreshing(true) : setLoading(true);
+      setError(null);
+      
+      const token = localStorage.getItem('token');
       const response = await axios.get('/api/attendance/list', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}` // Adjust based on your auth storage
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       if (response.data.success) {
-        // Map MongoDB data to match UI structure
         const mappedData = response.data.data.map(log => ({
-          id: log._id.slice(-7).toUpperCase(), // Short ID for display
+          id: log._id?.slice(-7).toUpperCase() || 'N/A',
           student: log.studentId?.name || 'Unknown Student',
           session: log.sessionId?.courseCode || 'N/A',
-          time: new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          distance: log.distance ? `${Math.round(log.distance)}m` : '0.0m',
+          time: log.createdAt ? new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--',
+          distance: typeof log.distance === 'number' ? `${Math.round(log.distance)}m` : '0m',
           status: log.method === 'scan' ? 'Verified' : 'Manual',
-          lat: log.location?.lat,
-          lng: log.location?.lng,
-          rawStatus: log.status // 'present' or 'late'
+          lat: log.location?.coordinates?.[1] || log.location?.lat, // Handles both GeoJSON and flat objects
+          lng: log.location?.coordinates?.[0] || log.location?.lng,
+          rawStatus: log.status
         }));
         setAttendanceLogs(mappedData);
       }
     } catch (err) {
+      console.error("Fetch Error:", err);
       setError(err.response?.data?.message || 'Failed to fetch registry logs');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchAttendance();
+  }, [fetchAttendance]);
 
   const filteredLogs = attendanceLogs.filter(log => {
     const matchesSearch = log.student.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -59,7 +61,7 @@ const Students = ({ onViewLocation, setIsSidebarOpen }) => {
     if (filteredLogs.length === 0) return;
     const headers = ["Log ID", "Student", "Session", "Time", "Distance", "Status", "Lat", "Lng"];
     const rows = filteredLogs.map(log => [
-      log.id, `"${log.student}"`, `"${log.session}"`, log.time, log.distance, log.status, log.lat, log.lng
+      log.id, `"${log.student}"`, `"${log.session}"`, log.time, log.distance, log.status, log.lat || '', log.lng || ''
     ]);
     const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -90,7 +92,7 @@ const Students = ({ onViewLocation, setIsSidebarOpen }) => {
           </div>
           <span className="font-black italic uppercase text-xs tracking-tighter text-stone-900">SmartAdm</span>
         </div>
-        <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-stone-50 rounded-xl text-stone-900 border border-stone-100 active:scale-95 transition-transform">
+        <button onClick={() => setIsSidebarOpen?.(true)} className="p-2 bg-stone-50 rounded-xl text-stone-900 border border-stone-100 active:scale-95 transition-transform">
           <Menu size={20} />
         </button>
       </header>
@@ -100,9 +102,18 @@ const Students = ({ onViewLocation, setIsSidebarOpen }) => {
         {/* HEADER & FILTERS */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
           <div className="space-y-1">
-            <h1 className="text-3xl md:text-5xl font-black tracking-tighter text-stone-900 uppercase italic leading-none">
-              Registry <span className="text-accentAmber">Logs</span>
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl md:text-5xl font-black tracking-tighter text-stone-900 uppercase italic leading-none">
+                Registry <span className="text-accentAmber">Logs</span>
+              </h1>
+              <button 
+                onClick={() => fetchAttendance(true)} 
+                disabled={refreshing}
+                className={`p-2 rounded-full hover:bg-stone-100 transition-colors ${refreshing ? 'animate-spin' : ''}`}
+              >
+                <RefreshCcw size={18} className="text-stone-400" />
+              </button>
+            </div>
             {error ? (
               <p className="text-red-500 font-bold uppercase tracking-[1px] text-[10px]">{error}</p>
             ) : (
@@ -147,7 +158,7 @@ const Students = ({ onViewLocation, setIsSidebarOpen }) => {
           </div>
         </div>
 
-        {/* DATA VIEWS (TABLE / CARDS) */}
+        {/* DATA VIEWS */}
         {filteredLogs.length > 0 ? (
           <>
             {/* Table View (Desktop) */}
@@ -164,7 +175,11 @@ const Students = ({ onViewLocation, setIsSidebarOpen }) => {
                 </thead>
                 <tbody className="divide-y divide-stone-100">
                   {filteredLogs.map((log, index) => (
-                    <tr key={index} className="hover:bg-stone-50/80 transition-all group cursor-pointer" onClick={() => onViewLocation([log.lat, log.lng])}>
+                    <tr 
+                      key={index} 
+                      className="hover:bg-stone-50/80 transition-all group cursor-pointer" 
+                      onClick={() => log.lat && onViewLocation?.([log.lat, log.lng])}
+                    >
                       <td className="px-8 py-6">
                         <p className="font-black text-stone-900 group-hover:text-accentAmber transition-colors uppercase italic tracking-tight">{log.student}</p>
                         <p className="text-[10px] font-bold text-stone-400 uppercase mt-1">{log.id}</p>
@@ -184,7 +199,11 @@ const Students = ({ onViewLocation, setIsSidebarOpen }) => {
                           {log.status}
                         </div>
                       </td>
-                      <td className="px-8 py-6 text-right"><div className="p-2 inline-block bg-stone-100 rounded-xl text-stone-400 group-hover:bg-accentAmber group-hover:text-white shadow-sm"><MapPin size={18} /></div></td>
+                      <td className="px-8 py-6 text-right px-8">
+                        <div className={`p-2 inline-block rounded-xl transition-all shadow-sm ${log.lat ? 'bg-stone-100 text-stone-400 group-hover:bg-accentAmber group-hover:text-white' : 'bg-stone-50 text-stone-200 cursor-not-allowed'}`}>
+                          <MapPin size={18} />
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -194,7 +213,11 @@ const Students = ({ onViewLocation, setIsSidebarOpen }) => {
             {/* Mobile Cards View */}
             <div className="grid grid-cols-1 gap-4 md:hidden">
               {filteredLogs.map((log, index) => (
-                <div key={index} onClick={() => onViewLocation([log.lat, log.lng])} className="bg-white p-6 rounded-[32px] border border-stone-100 active:scale-[0.98] transition-all shadow-sm flex flex-col gap-4">
+                <div 
+                  key={index} 
+                  onClick={() => log.lat && onViewLocation?.([log.lat, log.lng])} 
+                  className="bg-white p-6 rounded-[32px] border border-stone-100 active:scale-[0.98] transition-all shadow-sm flex flex-col gap-4"
+                >
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="font-black text-stone-900 uppercase italic tracking-tight">{log.student}</p>
@@ -216,7 +239,13 @@ const Students = ({ onViewLocation, setIsSidebarOpen }) => {
                   </div>
                   <div className="flex items-center justify-between text-[10px] font-black text-stone-400 uppercase">
                      <span className="flex items-center gap-1"><Clock size={12} /> {log.time}</span>
-                     <button className="flex items-center gap-1 text-accentAmber font-black"> <MapPin size={12} /> Geolocate </button>
+                     {log.lat ? (
+                       <button className="flex items-center gap-1 text-accentAmber font-black"> 
+                         <MapPin size={12} /> Geolocate 
+                       </button>
+                     ) : (
+                       <span className="text-stone-200">No GPS Data</span>
+                     )}
                   </div>
                 </div>
               ))}

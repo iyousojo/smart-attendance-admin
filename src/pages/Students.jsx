@@ -5,6 +5,9 @@ import {
   Fingerprint, ChevronDown, ShieldCheck, Menu, Loader2, RefreshCcw 
 } from 'lucide-react';
 
+// Use environment variable or fallback to Render URL
+const API_BASE = import.meta.env.VITE_API_URL || "https://studentattendanceapi-v4hq.onrender.com/api";
+
 const Students = ({ onViewLocation, setIsSidebarOpen }) => {
   const [attendanceLogs, setAttendanceLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,7 +22,9 @@ const Students = ({ onViewLocation, setIsSidebarOpen }) => {
       setError(null);
       
       const token = localStorage.getItem('token');
-      const response = await axios.get('/api/attendance/list', {
+      
+      // FIXED: Added API_BASE to the URL
+      const response = await axios.get(`${API_BASE}/attendance/list`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -31,7 +36,7 @@ const Students = ({ onViewLocation, setIsSidebarOpen }) => {
           time: log.createdAt ? new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--',
           distance: typeof log.distance === 'number' ? `${Math.round(log.distance)}m` : '0m',
           status: log.method === 'scan' ? 'Verified' : 'Manual',
-          lat: log.location?.coordinates?.[1] || log.location?.lat, // Handles both GeoJSON and flat objects
+          lat: log.location?.coordinates?.[1] || log.location?.lat, 
           lng: log.location?.coordinates?.[0] || log.location?.lng,
           rawStatus: log.status
         }));
@@ -50,6 +55,8 @@ const Students = ({ onViewLocation, setIsSidebarOpen }) => {
     fetchAttendance();
   }, [fetchAttendance]);
 
+  // ... (Rest of your component logic remains the same)
+  
   const filteredLogs = attendanceLogs.filter(log => {
     const matchesSearch = log.student.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           log.session.toLowerCase().includes(searchTerm.toLowerCase());
@@ -161,7 +168,6 @@ const Students = ({ onViewLocation, setIsSidebarOpen }) => {
         {/* DATA VIEWS */}
         {filteredLogs.length > 0 ? (
           <>
-            {/* Table View (Desktop) */}
             <div className="hidden md:block bg-white rounded-[32px] md:rounded-[44px] border border-stone-100 overflow-hidden shadow-sm">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-stone-50/50 border-b border-stone-100">
@@ -210,7 +216,6 @@ const Students = ({ onViewLocation, setIsSidebarOpen }) => {
               </table>
             </div>
 
-            {/* Mobile Cards View */}
             <div className="grid grid-cols-1 gap-4 md:hidden">
               {filteredLogs.map((log, index) => (
                 <div 

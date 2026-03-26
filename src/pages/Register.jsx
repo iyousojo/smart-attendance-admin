@@ -1,10 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  UserPlus, Mail, User, 
-  ArrowLeft, ChevronRight,
-  Monitor, Loader2 
-} from 'lucide-react';
+import { UserPlus, Mail, User, ArrowLeft, ChevronRight, Monitor, Loader2 } from 'lucide-react';
 
 const Register = ({ onRegister }) => {
   const navigate = useNavigate();
@@ -21,7 +17,6 @@ const Register = ({ onRegister }) => {
   useEffect(() => {
     const getPersistentDeviceId = () => {
       try {
-        // Look for existing ID or create fingerprint
         let systemId = localStorage.getItem('system_id');
         if (!systemId) {
           const fingerprint = [
@@ -48,11 +43,17 @@ const Register = ({ onRegister }) => {
 
     setIsSubmitting(true);
     try {
-      await onRegister({
+      // Call App.js function and wait for boolean result
+      const success = await onRegister({
         ...formData,
         email: formData.email.toLowerCase().trim(),
         deviceId: deviceId 
       });
+
+      if (success) {
+        // Safe redirection via React Router
+        navigate('/login'); 
+      }
     } finally {
       setIsSubmitting(false);
     }

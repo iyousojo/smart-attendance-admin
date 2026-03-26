@@ -24,7 +24,6 @@ function App() {
   const [selectedSession, setSelectedSession] = useState(null);
   const [sessions, setSessions] = useState([]);
 
-  // Session recovery on Mount
   useEffect(() => {
     const token = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
@@ -56,13 +55,15 @@ function App() {
       const data = await response.json();
 
       if (response.ok) {
-        alert("Registration Successful! Redirecting to login...");
-        window.location.href = '/login'; 
+        alert("Registration Successful!");
+        return true; // Logic: Signal success to the component
       } else {
         alert(data.message || "Registration Failed");
+        return false;
       }
     } catch (err) {
-      alert("Connection Error. Check your internet or if the backend is awake.");
+      alert("Connection Error. Check your backend status.");
+      return false;
     }
   };
 
@@ -78,11 +79,9 @@ function App() {
 
       if (response.ok) {
         if (data.user.role === 'student') {
-          alert("ACCESS DENIED: Faculty Terminal is reserved for authorized personnel only.");
-          setIsLoading(false);
+          alert("ACCESS DENIED: Faculty Terminal is reserved for authorized personnel.");
           return;
         }
-
         localStorage.setItem('token', data.token);
         handleUpdateUser(data.user);
         setIsAuthenticated(true);
@@ -102,11 +101,10 @@ function App() {
     setIsAuthenticated(false);
   };
 
-  // Helper to handle coordinate navigation from the Registry
   const handleViewLocation = (coords) => {
     if (coords && coords[0] && coords[1]) {
-      // Navigate using standard window location since Router is top-level
-      // Alternatively, you could wrap the inner part of App in a sub-component to use useNavigate()
+      // For internal routes, it is better to use a navigate wrapper, 
+      // but if used outside a hook context, this works with vercel.json rewrites.
       window.location.href = `/geo?lat=${coords[0]}&lng=${coords[1]}`;
     }
   };
@@ -132,44 +130,11 @@ function App() {
               <Route path="/login" element={!isAuthenticated ? <Login onLogin={handleLogin} /> : <Navigate to="/dashboard" />} />
               <Route path="/register" element={<Register onRegister={handleRegister} />} />
 
-              {/* Private Routes */}
               <Route path="/dashboard" element={isAuthenticated ? <Dashboard user={user} setIsSidebarOpen={setIsSidebarOpen} /> : <Navigate to="/login" />} />
-              
-              <Route path="/sessions" element={
-                isAuthenticated ? (
-                  <Sessions 
-                    sessions={sessions} 
-                    onSelectSession={setSelectedSession} 
-                    setIsSidebarOpen={setIsSidebarOpen} 
-                  />
-                ) : <Navigate to="/login" />
-              } />
-
-              {/* FIXED: Added onViewLocation prop to prevent the m() is not a function error */}
-              <Route path="/students" element={
-                isAuthenticated ? (
-                  <Students 
-                    setIsSidebarOpen={setIsSidebarOpen} 
-                    onViewLocation={handleViewLocation} 
-                  />
-                ) : <Navigate to="/login" />
-              } />
-
+              <Route path="/sessions" element={isAuthenticated ? <Sessions sessions={sessions} onSelectSession={setSelectedSession} setIsSidebarOpen={setIsSidebarOpen} /> : <Navigate to="/login" />} />
+              <Route path="/students" element={isAuthenticated ? <Students setIsSidebarOpen={setIsSidebarOpen} onViewLocation={handleViewLocation} /> : <Navigate to="/login" />} />
               <Route path="/geo" element={isAuthenticated ? <Geofence setIsSidebarOpen={setIsSidebarOpen} /> : <Navigate to="/login" />} />
-              
-              <Route 
-                path="/profile" 
-                element={
-                  isAuthenticated ? (
-                    <Profile 
-                      user={user} 
-                      onLogout={handleLogout} 
-                      onOpenSidebar={() => setIsSidebarOpen(true)}
-                      onUpdateUser={handleUpdateUser} 
-                    />
-                  ) : <Navigate to="/login" />
-                } 
-              />
+              <Route path="/profile" element={isAuthenticated ? <Profile user={user} onLogout={handleLogout} onOpenSidebar={() => setIsSidebarOpen(true)} onUpdateUser={handleUpdateUser} /> : <Navigate to="/login" />} />
               
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>

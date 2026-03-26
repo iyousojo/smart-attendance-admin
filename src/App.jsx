@@ -77,11 +77,10 @@ function App() {
       const data = await response.json();
 
       if (response.ok) {
-        // --- ADDED SECURITY ALERT FOR NON-FACULTY ---
         if (data.user.role === 'student') {
-          alert("ACCESS DENIED: Faculty Terminal is reserved for authorized personnel only. Students must use the Mobile App.");
+          alert("ACCESS DENIED: Faculty Terminal is reserved for authorized personnel only.");
           setIsLoading(false);
-          return; // Block login
+          return;
         }
 
         localStorage.setItem('token', data.token);
@@ -101,6 +100,15 @@ function App() {
     localStorage.clear();
     setUser(null);
     setIsAuthenticated(false);
+  };
+
+  // Helper to handle coordinate navigation from the Registry
+  const handleViewLocation = (coords) => {
+    if (coords && coords[0] && coords[1]) {
+      // Navigate using standard window location since Router is top-level
+      // Alternatively, you could wrap the inner part of App in a sub-component to use useNavigate()
+      window.location.href = `/geo?lat=${coords[0]}&lng=${coords[1]}`;
+    }
   };
 
   if (isLoading) return <Loader message="Connecting to Node..." />;
@@ -126,8 +134,27 @@ function App() {
 
               {/* Private Routes */}
               <Route path="/dashboard" element={isAuthenticated ? <Dashboard user={user} setIsSidebarOpen={setIsSidebarOpen} /> : <Navigate to="/login" />} />
-              <Route path="/sessions" element={isAuthenticated ? <Sessions sessions={sessions} onSelectSession={setSelectedSession} setIsSidebarOpen={setIsSidebarOpen} /> : <Navigate to="/login" />} />
-              <Route path="/students" element={isAuthenticated ? <Students setIsSidebarOpen={setIsSidebarOpen} /> : <Navigate to="/login" />} />
+              
+              <Route path="/sessions" element={
+                isAuthenticated ? (
+                  <Sessions 
+                    sessions={sessions} 
+                    onSelectSession={setSelectedSession} 
+                    setIsSidebarOpen={setIsSidebarOpen} 
+                  />
+                ) : <Navigate to="/login" />
+              } />
+
+              {/* FIXED: Added onViewLocation prop to prevent the m() is not a function error */}
+              <Route path="/students" element={
+                isAuthenticated ? (
+                  <Students 
+                    setIsSidebarOpen={setIsSidebarOpen} 
+                    onViewLocation={handleViewLocation} 
+                  />
+                ) : <Navigate to="/login" />
+              } />
+
               <Route path="/geo" element={isAuthenticated ? <Geofence setIsSidebarOpen={setIsSidebarOpen} /> : <Navigate to="/login" />} />
               
               <Route 
@@ -140,9 +167,7 @@ function App() {
                       onOpenSidebar={() => setIsSidebarOpen(true)}
                       onUpdateUser={handleUpdateUser} 
                     />
-                  ) : (
-                    <Navigate to="/login" />
-                  )
+                  ) : <Navigate to="/login" />
                 } 
               />
               

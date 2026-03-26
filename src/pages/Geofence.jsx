@@ -123,7 +123,7 @@ const Geofence = ({ setIsSidebarOpen }) => {
     <div className="flex flex-col h-screen bg-stone-50 overflow-hidden font-sans">
       
       {/* HEADER */}
-      <header className="flex items-center justify-between px-4 py-3 bg-white border-b border-stone-200 z-[100]">
+      <header className="flex items-center justify-between px-4 py-3 bg-white border-b border-stone-200 z-[10]">
         <div className="flex items-center gap-3 min-w-0">
           <button onClick={() => setIsSidebarOpen?.(true)} className="lg:hidden p-2 hover:bg-stone-100 rounded-lg">
             <Menu size={20} className="text-stone-600" />

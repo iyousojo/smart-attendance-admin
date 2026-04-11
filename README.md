@@ -1,7 +1,7 @@
-🛡️ Faculty Terminal | Web Administration Portal
+[![Stars](https://img.shields.io/github/stars/USER/smart-attendance-admin?style=social)](https://github.com/USER/smart-attendance-admin) [![Issues](https://img.shields.io/github/issues/USER/smart-attendance-admin)](https://github.com/USER/smart-attendance-admin) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)&#10;&#10;🛡️ Faculty Terminal | Web Administration Portal
 The Faculty Terminal is the centralized web interface for the Smart Attendance System. It is designed specifically for academic staff and administrators to manage geofencing, broadcast attendance sessions via QR codes, and monitor student activity in real-time.
 
-🚀 Core Features
+🚀 Core Features&#10;&#10;## Recent Changes&#10;- Enhanced live student tracking on Students page.&#10;- Improved geofence radius validation.&#10;- Added session stats to Profile dashboard.&#10;&#10;🚀 Core Features
 Hardware Binding: Securely links browser sessions to a unique System ID.
 
 Broadcast Node: Generate and cycle dynamic QR codes for live attendance.
@@ -10,7 +10,7 @@ Geofence Control: Define \"Safe Zones\" using GPS coordinates (Leaflet maps) for
 
 Student Management: View enrolled students, live signals/counts.
 
-Session Broadcast: Start QR sessions w/ dynamic security salt, view logs (BroadcastLog).
+Session Broadcast: Start QR sessions with dynamic security salt, view logs (BroadcastLog).
 
 Dashboard: Overview of sessions, profile stats (attended/late counts).
 
@@ -115,12 +115,12 @@ src/
 
    DevTools > Application > Local Storage > Delete `system_id` > Refresh.
 
-🛰️ API Endpoints (services/api.js)
+🛰️ API Endpoints (services/api.js)&#10;&#10;## Screenshots&#10;![Dashboard](screenshots/dashboard.png)&#10;![Geofence](screenshots/geofence.png)&#10;![QR Broadcast](screenshots/qr-broadcast.png)&#10;&#10;🛰️ API Endpoints (services/api.js)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/auth/login` | Auth professor/admin, returns token |
 | GET | `/auth/profile` | Fetch user profile/attendance stats |
 | POST | `/attendance/session` | Start session `{name, lat, lng, radius}` |
 | GET | `/attendance/list?sessionId=...` | Session attendance list |
-| GET | `/attendance/professor/sessions` | Professor's active sessions |
+| GET | `/attendance/professor/sessions` | Professor's active sessions |&#10;&#10;## Contributing&#10;Contributions welcome! Fork the repo, create a feature branch (`git checkout -b feat/amazing-feature`), make changes, commit (`git commit -m 'Add amazing feature'`), and open a Pull Request.&#10;&#10;## License&#10;This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 

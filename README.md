@@ -6,54 +6,74 @@ Hardware Binding: Securely links browser sessions to a unique System ID.
 
 Broadcast Node: Generate and cycle dynamic QR codes for live attendance.
 
-Geofence Control: Define "Safe Zones" using GPS coordinates for valid check-ins.
+Geofence Control: Define \"Safe Zones\" using GPS coordinates (Leaflet maps) for valid check-ins; live student tracking.
 
-Student Registry: Comprehensive management of enrolled student profiles.
+Student Management: View enrolled students, live signals/counts.
+
+Session Broadcast: Start QR sessions w/ dynamic security salt, view logs (BroadcastLog).
+
+Dashboard: Overview of sessions, profile stats (attended/late counts).
 
 Identity Enforcement: Automatic rejection of student-role logins to ensure portal integrity.
 
 🛠️ Tech Stack
-Framework: React 19
+Framework: React 19 (^19.0.0, react-router-dom ^7.13.1)
 
-Build Tool: Vite
+Build Tool: Vite (^6.0.0)
 
-Styling: Tailwind CSS
+Styling: Tailwind CSS (^3.4.19) w/ custom theme (bone/stone/accentAmber)
 
-Icons: Lucide React
+Icons: Lucide React (^0.284.0)
 
-Routing: React Router v6
+Maps: Leaflet + react-leaflet (^1.9.4, ^5.0.0)
+
+QR: qrcode.react (^4.2.0)
+
+HTTP: Axios (^1.6.0)
 
 📦 Installation & Setup
 Clone the Repository
 
-Bash
+```bash
 git clone <your-repo-url>
-cd faculty-terminal-web
+cd smart-attendance-admin
+```
+
 Install Dependencies
 
-Bash
+```bash
 npm install
-Environment Configuration
-Create a .env file in the root directory:
+```
 
-Code snippet
-VITE_API_URL=https://studentattendanceapi-v4hq.onrender.com/api
+Environment Configuration
+Create a `.env` file in the root directory:
+
+```
+REACT_APP_API_URL=https://studentattendanceapi-v4hq.onrender.com/api
+```
+
 Launch Development Server
 
-Bash
+```bash
 npm run dev
+```
+
 🏗️ Production Build & Deployment
 Building for Production
-To create an optimized bundle for hosting (Vercel, Netlify, or Expo):
+To create an optimized bundle:
 
-Bash
+```bash
 npm run build
-Deploying via EAS (Optional)
-If you wish to host the web build on Expo's global infrastructure:
+```
 
-Bash
-npx expo export --platform web
-eas deploy
+**Deploy to Vercel** (vercel.json configured):
+
+1. Push to GitHub
+2. Connect repo in Vercel dashboard
+3. Auto-deploy on push
+
+Or CLI: `vercel --prod`
+
 🔒 Security Protocols
 Role-Based Access Control (RBAC): The frontend strictly enforces professor and admin roles.
 
@@ -62,28 +82,45 @@ Token-Based Auth: JWT tokens are stored in localStorage for session persistence.
 System Fingerprinting: Generates a unique WEB- prefixed ID based on browser/hardware specs to prevent unauthorized multi-device hijacking.
 
 📂 Project Structure
-Plaintext
+```
 src/
-├── components/       # Reusable UI (Sidebar, Loader, QRBroadcast)
-├── pages/            # View-level components (Dashboard, Geofence, etc.)
-├── layout/           # Shared wrappers and navigation
-├── App.jsx           # Main Routing and Role Security Logic
-└── main.jsx          # Entry point
-🛠️ Troubleshooting & FAQ1. "Terminal Connection Error"
+├── components/
+│   ├── layout/       # Sidebar.jsx
+│   └── ui/           # Loader.jsx, QRBroadcast.jsx, SessionModal.jsx
+├── pages/            # Dashboard.jsx, Geofence.jsx (maps), Students.jsx (live list), 
+│                     # BroadcastLog.jsx, Profile.jsx (stats), Login.jsx, Register.jsx, Welcome.jsx
+├── services/         # api.js (auth, sessions, geofence)
+├── App.jsx           # Main app, routing, auth guard
+├── main.jsx          # Entry point
+└── utils/            # Helpers
+```
 
-  If the login screen shows this error, check the following:Backend Sleep:
- Your API is hosted on Render's free tier. If it hasn't been used in 15 minutes, it "sleeps." 
- The first request can take 30–50 seconds to wake it up.CORS Block: Ensure your Web URL (e.g., localhost:5173 or yourdomain.com) is whitelisted in the Node.js backend cors() configuration.Mixed Content: Ensure you are accessing the site via https if your API is https.
+🛠️ Troubleshooting & FAQ
+1. **"Terminal Connection Error"**
 
- 2. "ACCESS DENIED: Faculty Only"Reason: You are logged in with an account where the role is set to student in the MongoDB database.Fix: Manually update the user's role to professor or admin in your database (MongoDB Atlas) to grant web access.
- 
- 3. QR Code Not DisplayingCheck: Verify that you have an active session in the Sessions tab.Network: The QR generator requires a stable internet connection to sync the dynamic "security salt" with the mobile app.
+   - Backend Sleep: Render free tier sleeps after 15min inactivity (30-50s wakeup).
+   - CORS: Whitelist your domain in backend.
+   - Mixed Content: Use HTTPS for API calls.
 
- 4. Hardware ID ResetIf you need to clear the current "System ID" (for testing or device handover):Open Browser Developer Tools (F12).Go to Application > Local Storage.Right-click and Clear or delete the system_id key.Refresh the page; a new WEB- prefix ID will be generated.
+2. **"ACCESS DENIED: Faculty Only"**
 
- 🛰️ API Endpoints UsedMethodEndpointDescription POST/auth/login Authenticates
- 
-  Faculty & binds DeviceID GET/sessions/active Fetches live QR broadcast data
-  POST/geo/updateUpdates 
+   Update user role to 'professor' or 'admin' in MongoDB Atlas.
 
-  the geofence coordinatesGET/students/logsRetrieves real-time attendance history
+3. **QR Code Not Displaying**
+
+   - Active session required.
+   - Stable connection for security salt sync.
+
+4. **Hardware ID Reset**
+
+   DevTools > Application > Local Storage > Delete `system_id` > Refresh.
+
+🛰️ API Endpoints (services/api.js)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/auth/login` | Auth professor/admin, returns token |
+| GET | `/auth/profile` | Fetch user profile/attendance stats |
+| POST | `/attendance/session` | Start session `{name, lat, lng, radius}` |
+| GET | `/attendance/list?sessionId=...` | Session attendance list |
+| GET | `/attendance/professor/sessions` | Professor's active sessions |
+
